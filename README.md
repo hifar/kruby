@@ -69,7 +69,7 @@ NEXTAUTH_URL="http://localhost:3000"
 
 ## 技术栈
 
-- **框架**: Next.js 14 (App Router)
+- **框架**: Next.js 15 (App Router)
 - **数据库**: SQLite + Prisma ORM
 - **认证**: NextAuth.js v4
 - **样式**: Tailwind CSS
