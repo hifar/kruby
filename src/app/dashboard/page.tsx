@@ -303,7 +303,7 @@ export default function DashboardPage() {
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-2">
             <span className="text-sm text-gray-600 hidden sm:inline">
               👤 {session.user?.name}
             </span>
@@ -331,7 +331,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Mobile search */}
-        <div className="sm:hidden px-4 pb-3">
+        <div className="sm:hidden px-4 pb-3 space-y-2">
           <input
             type="text"
             placeholder="搜索文件..."
@@ -339,6 +339,29 @@ export default function DashboardPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <span className="text-xs text-gray-500 whitespace-nowrap">👤 {session.user?.name}</span>
+            <button
+              onClick={() => router.push('/account')}
+              className="px-3 py-2 text-xs text-gray-600 bg-gray-100 rounded-lg whitespace-nowrap"
+            >
+              修改密码
+            </button>
+            {session.user?.role === 'ADMIN' && (
+              <button
+                onClick={() => router.push('/admin/users')}
+                className="px-3 py-2 text-xs text-indigo-600 bg-indigo-50 rounded-lg whitespace-nowrap"
+              >
+                用户管理
+              </button>
+            )}
+            <button
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              className="px-3 py-2 text-xs text-gray-600 bg-gray-100 rounded-lg whitespace-nowrap"
+            >
+              退出
+            </button>
+          </div>
         </div>
       </header>
 
@@ -381,22 +404,22 @@ export default function DashboardPage() {
                 <p className="text-gray-500 text-sm mt-0.5">{filteredFiles.length} 个文件</p>
               </div>
 
-              <div className="flex gap-2 flex-wrap">
+              <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
                 <button
                   onClick={() => setShowNewFile(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                  className="flex items-center justify-center gap-2 px-3 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
                 >
                   <span>+</span> 新建文件
                 </button>
                 <button
                   onClick={() => setShowUpload(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
+                  className="flex items-center justify-center gap-2 px-3 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
                 >
                   <span>↑</span> 上传文件
                 </button>
                 <button
                   onClick={() => setShowNewFolder(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm font-medium"
+                  className="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 px-3 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm font-medium"
                 >
                   <span>📁</span> 新建文件夹
                 </button>
@@ -409,7 +432,7 @@ export default function DashboardPage() {
                 <select
                   value={folderMoveTarget}
                   onChange={(e) => setFolderMoveTarget(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
                 >
                   <option value="ROOT">根目录</option>
                   {folderMoveOptions.map((folder) => (
@@ -420,7 +443,7 @@ export default function DashboardPage() {
                 </select>
                 <button
                   onClick={handleMoveFolder}
-                  className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 text-sm font-medium"
+                  className="px-4 py-2.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 text-sm font-medium"
                 >
                   移动文件夹
                 </button>
@@ -442,7 +465,7 @@ export default function DashboardPage() {
                 <select
                   value={fileMoveTarget}
                   onChange={(e) => setFileMoveTarget(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm lg:ml-auto"
+                  className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm lg:ml-auto"
                 >
                   <option value="ROOT">移动到根目录</option>
                   {flatFolders.map((folder) => (
@@ -454,14 +477,14 @@ export default function DashboardPage() {
                 <button
                   onClick={handleBatchMoveFiles}
                   disabled={selectedFileIds.length === 0}
-                  className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 text-sm font-medium disabled:opacity-50"
+                  className="px-4 py-2.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 text-sm font-medium disabled:opacity-50"
                 >
                   批量移动
                 </button>
                 <button
                   onClick={handleBatchDeleteFiles}
                   disabled={selectedFileIds.length === 0}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium disabled:opacity-50"
+                  className="px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium disabled:opacity-50"
                 >
                   批量删除
                 </button>
@@ -512,19 +535,19 @@ export default function DashboardPage() {
                     <div className="flex border-t">
                       <button
                         onClick={() => openFile(file.id)}
-                        className="flex-1 py-2 text-xs text-blue-600 hover:bg-blue-50 rounded-bl-xl"
+                        className="flex-1 py-2.5 text-sm sm:text-xs text-blue-600 hover:bg-blue-50 rounded-bl-xl"
                       >
                         查看
                       </button>
                       <button
                         onClick={() => openFile(file.id, 'edit')}
-                        className="flex-1 py-2 text-xs text-green-600 hover:bg-green-50 border-l"
+                        className="flex-1 py-2.5 text-sm sm:text-xs text-green-600 hover:bg-green-50 border-l"
                       >
                         编辑
                       </button>
                       <button
                         onClick={() => handleDeleteFile(file.id)}
-                        className="flex-1 py-2 text-xs text-red-500 hover:bg-red-50 rounded-br-xl border-l"
+                        className="flex-1 py-2.5 text-sm sm:text-xs text-red-500 hover:bg-red-50 rounded-br-xl border-l"
                       >
                         删除
                       </button>

@@ -130,8 +130,9 @@ export default function FilePage({ params }: { params: Promise<{ id: string }> }
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b shadow-sm sticky top-0 z-30">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="flex flex-col gap-3 px-4 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => router.push(backHref)}
               className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 flex-shrink-0"
@@ -145,11 +146,11 @@ export default function FilePage({ params }: { params: Promise<{ id: string }> }
                 type="text"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="text-lg font-semibold border-b-2 border-blue-500 focus:outline-none bg-transparent min-w-0"
+                className="text-base sm:text-lg font-semibold border-b-2 border-blue-500 focus:outline-none bg-transparent min-w-0"
               />
             ) : (
               <div className="min-w-0">
-                <h1 className="text-lg font-semibold text-gray-900 truncate">{file.name}</h1>
+                <h1 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{file.name}</h1>
                 {file.folder && (
                   <p className="text-xs text-gray-500">{file.folder.path}</p>
                 )}
@@ -157,7 +158,7 @@ export default function FilePage({ params }: { params: Promise<{ id: string }> }
             )}
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
             {isEditing ? (
               <>
                 <button
@@ -195,11 +196,51 @@ export default function FilePage({ params }: { params: Promise<{ id: string }> }
               </>
             )}
           </div>
+          </div>
+
+          <div className="flex sm:hidden items-center gap-2 w-full">
+            {isEditing ? (
+              <>
+                <button
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditContent(file.content);
+                    setEditName(file.name);
+                  }}
+                  className="flex-1 px-3 py-2.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex-1 px-3 py-2.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {saving ? '保存中...' : saveSuccess ? '✓ 已保存' : '保存'}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex-1 px-3 py-2.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  编辑
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="flex-1 px-3 py-2.5 text-sm text-red-500 border border-red-300 rounded-lg hover:bg-red-50"
+                >
+                  删除
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* File meta */}
         {!isEditing && (
-          <div className="px-4 pb-2 flex items-center gap-4 text-xs text-gray-400">
+          <div className="px-4 pb-2 flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-gray-400">
             <span>👤 {file.user?.username}</span>
             <span>📅 {new Date(file.updatedAt).toLocaleString('zh-CN')}</span>
           </div>

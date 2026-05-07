@@ -208,14 +208,14 @@ export default function AdminUsersPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">用户管理</h1>
             <p className="text-sm text-gray-500 mt-1">管理员可修改角色、重置密码与删除用户</p>
           </div>
           <button
             onClick={() => router.push('/dashboard')}
-            className="px-4 py-2 bg-white border rounded-lg text-sm text-gray-700 hover:bg-gray-50"
+            className="w-full sm:w-auto px-4 py-2.5 bg-white border rounded-lg text-sm text-gray-700 hover:bg-gray-50"
           >
             返回仪表盘
           </button>
@@ -233,20 +233,20 @@ export default function AdminUsersPage() {
               type="text"
               value={newUsername}
               onChange={(e) => setNewUsername(e.target.value)}
-              className="border rounded-md px-3 py-2"
+              className="border rounded-md px-3 py-2.5"
               placeholder="用户名(至少3位)"
             />
             <input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="border rounded-md px-3 py-2"
+              className="border rounded-md px-3 py-2.5"
               placeholder="密码(至少6位)"
             />
             <select
               value={newRole}
               onChange={(e) => setNewRole(e.target.value as UserRole)}
-              className="border rounded-md px-3 py-2"
+              className="border rounded-md px-3 py-2.5"
             >
               <option value="USER">USER</option>
               <option value="ADMIN">ADMIN</option>
@@ -254,14 +254,14 @@ export default function AdminUsersPage() {
             <button
               onClick={handleCreateUser}
               disabled={creating}
-              className="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-60"
+              className="px-3 py-2.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-60"
             >
               {creating ? '创建中...' : '添加用户'}
             </button>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border overflow-hidden">
+        <div className="bg-white rounded-xl border overflow-hidden hidden md:block">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-600">
@@ -335,6 +335,70 @@ export default function AdminUsersPage() {
               </tbody>
             </table>
           </div>
+        </div>
+
+        <div className="md:hidden space-y-3">
+          {users.map((user) => (
+            <div key={user.id} className="bg-white rounded-xl border p-4">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div>
+                  <p className="font-semibold text-gray-900">{user.username}</p>
+                  <p className="text-xs text-gray-500">{new Date(user.createdAt).toLocaleString('zh-CN')}</p>
+                </div>
+                <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">{user.role}</span>
+              </div>
+
+              <div className="text-xs text-gray-500 mb-3">
+                文件夹 {user._count.folders} · 文件 {user._count.markdownFiles}
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <select
+                    value={roleDraft[user.id] || user.role}
+                    onChange={(e) =>
+                      setRoleDraft((prev) => ({ ...prev, [user.id]: e.target.value as UserRole }))
+                    }
+                    className="border rounded-md px-2 py-2 flex-1"
+                  >
+                    <option value="USER">USER</option>
+                    <option value="ADMIN">ADMIN</option>
+                  </select>
+                  <button
+                    onClick={() => handleUpdateRole(user.id)}
+                    className="px-3 py-2 text-xs bg-blue-600 text-white rounded"
+                  >
+                    保存角色
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="password"
+                    value={passwordDraft[user.id] || ''}
+                    onChange={(e) =>
+                      setPasswordDraft((prev) => ({ ...prev, [user.id]: e.target.value }))
+                    }
+                    className="border rounded-md px-3 py-2 flex-1"
+                    placeholder="新密码(至少6位)"
+                  />
+                  <button
+                    onClick={() => handleResetPassword(user.id)}
+                    className="px-3 py-2 text-xs bg-emerald-600 text-white rounded"
+                  >
+                    重置
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => handleDeleteUser(user.id, user.username)}
+                  className="w-full px-3 py-2.5 text-xs bg-red-600 text-white rounded"
+                >
+                  删除用户
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
