@@ -1,0 +1,19 @@
+services:
+  kruby:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kruby
+    ports:
+      - "3012:3012"
+    environment:
+      DATABASE_URL: "file:/app/data/dev.db"
+      NEXTAUTH_SECRET: "please-change-this-to-a-random-long-secret"
+      NEXTAUTH_URL: "http://localhost:3012"
+      NODE_ENV: "production"
+    volumes:
+      - kruby_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  kruby_data:
