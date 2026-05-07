@@ -34,6 +34,9 @@ export default function FilePage({ params }: { params: Promise<{ id: string }> }
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  const backFolderId = searchParams?.get('folderId') || file?.folderId || null;
+  const backHref = backFolderId ? `/dashboard?folderId=${backFolderId}` : '/dashboard';
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
@@ -90,7 +93,7 @@ export default function FilePage({ params }: { params: Promise<{ id: string }> }
   const handleDelete = async () => {
     if (!confirm(`确定删除文件 "${file?.name}"？`)) return;
     await fetch(`/api/files/${id}`, { method: 'DELETE' });
-    router.push('/dashboard');
+    router.push(backHref);
   };
 
   if (status === 'loading' || loading) {
@@ -111,7 +114,7 @@ export default function FilePage({ params }: { params: Promise<{ id: string }> }
           <p className="text-5xl mb-4">❌</p>
           <p className="text-gray-700 text-lg mb-4">{error}</p>
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.push(backHref)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             返回主页
@@ -130,7 +133,7 @@ export default function FilePage({ params }: { params: Promise<{ id: string }> }
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3 min-w-0">
             <button
-              onClick={() => router.push('/dashboard')}
+              onClick={() => router.push(backHref)}
               className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 flex-shrink-0"
               title="返回"
             >

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import FileTree, { FolderNode } from '@/components/FileTree';
 import UploadModal from '@/components/UploadModal';
 import NewFolderModal from '@/components/NewFolderModal';
@@ -37,24 +37,63 @@ function buildTree(folders: FolderNode[]): FolderNode[] {
   return roots;
 }
 
+function flattenTree(folders: FolderNode[]): FolderNode[] {
+  const result: FolderNode[] = [];
+  const visit = (nodes: FolderNode[]) => {
+    for (const node of nodes) {
+      result.push(node);
+      if (node.children?.length) {
+        visit(node.children);
+      }
+    }
+  };
+  visit(folders);
+  return result;
+}
+
+function getDescendantIds(folderId: string, folders: FolderNode[]): string[] {
+  const result: string[] = [];
+  const findChildren = (nodes: FolderNode[]) => {
+    for (const node of nodes) {
+      if (node.parentId === folderId) {
+        result.push(node.id);
+        findChildren(folders.filter((folder) => folder.parentId === node.id));
+      }
+    }
+  };
+
+  findChildren(folders.filter((folder) => folder.parentId === folderId));
+  return result;
+}
+
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialFolderId = searchParams.get('folderId');
   const [folders, setFolders] = useState<FolderNode[]>([]);
   const [files, setFiles] = useState<FileItem[]>([]);
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(initialFolderId || null);
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [showNewFile, setShowNewFile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFileIds, setSelectedFileIds] = useState<string[]>([]);
+  const [fileMoveTarget, setFileMoveTarget] = useState<string>('ROOT');
+  const [folderMoveTarget, setFolderMoveTarget] = useState<string>('ROOT');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
     }
   }, [status, router]);
+
+  useEffect(() => {
+    const folderId = searchParams.get('folderId');
+    setCurrentFolderId(folderId || null);
+  }, [searchParams]);
 
   const loadAllFolders = useCallback(async () => {
     try {
@@ -79,9 +118,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      Promise.all([loadAllFolders(), loadFiles()]).finally(() => setLoading(false));
+      loadAllFolders().finally(() => setLoading(false));
     }
-  }, [status, loadAllFolders, loadFiles]);
+  }, [status, loadAllFolders]);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -89,16 +128,115 @@ export default function DashboardPage() {
     }
   }, [currentFolderId, status, loadFiles]);
 
+  useEffect(() => {
+    setSelectedFileIds([]);
+  }, [currentFolderId, files]);
+
+  const updateFolderSelection = useCallback((folderId: string | null) => {
+    setCurrentFolderId(folderId);
+    const params = new URLSearchParams(searchParams.toString());
+    if (folderId) {
+      params.set('folderId', folderId);
+    } else {
+      params.delete('folderId');
+    }
+    router.replace(params.toString() ? `/dashboard?${params.toString()}` : '/dashboard');
+  }, [router, searchParams]);
+
   const handleDeleteFolder = async (id: string) => {
     await fetch(`/api/folders/${id}`, { method: 'DELETE' });
     await loadAllFolders();
-    if (currentFolderId === id) setCurrentFolderId(null);
+    if (currentFolderId === id) updateFolderSelection(null);
+  };
+
+  const handleMoveFolder = async () => {
+    if (!currentFolderId) return;
+
+    const parentId = folderMoveTarget === 'ROOT' ? null : folderMoveTarget;
+    const res = await fetch(`/api/folders/${currentFolderId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ parentId }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      alert(data.error || '移动文件夹失败');
+      return;
+    }
+
+    await loadAllFolders();
   };
 
   const handleDeleteFile = async (id: string) => {
     if (!confirm('确定删除此文件？')) return;
     await fetch(`/api/files/${id}`, { method: 'DELETE' });
     await loadFiles();
+  };
+
+  const handleToggleFileSelection = (id: string) => {
+    setSelectedFileIds((prev) =>
+      prev.includes(id) ? prev.filter((value) => value !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleSelectAll = () => {
+    const visibleIds = filteredFiles.map((file) => file.id);
+    const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedFileIds.includes(id));
+
+    setSelectedFileIds(allVisibleSelected ? [] : visibleIds);
+  };
+
+  const handleBatchDeleteFiles = async () => {
+    if (selectedFileIds.length === 0) return;
+    if (!confirm(`确定删除选中的 ${selectedFileIds.length} 个文件吗？`)) return;
+
+    const res = await fetch('/api/files', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: selectedFileIds }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      alert(data.error || '批量删除失败');
+      return;
+    }
+
+    setSelectedFileIds([]);
+    await loadFiles();
+  };
+
+  const handleBatchMoveFiles = async () => {
+    if (selectedFileIds.length === 0) return;
+
+    const targetFolderId = fileMoveTarget === 'ROOT' ? null : fileMoveTarget;
+    const res = await fetch('/api/files', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: selectedFileIds, targetFolderId }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      alert(data.error || '批量移动失败');
+      return;
+    }
+
+    setSelectedFileIds([]);
+    await loadFiles();
+  };
+
+  const openFile = (fileId: string, mode?: 'edit') => {
+    const params = new URLSearchParams();
+    if (mode) {
+      params.set('mode', mode);
+    }
+    if (currentFolderId) {
+      params.set('folderId', currentFolderId);
+    }
+
+    router.push(params.toString() ? `/files/${fileId}?${params.toString()}` : `/files/${fileId}`);
   };
 
   const getCurrentFolderName = () => {
@@ -119,6 +257,12 @@ export default function DashboardPage() {
   const filteredFiles = files.filter((f) =>
     f.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  const flatFolders = flattenTree(folders);
+  const currentFolderDescendantIds = currentFolderId ? getDescendantIds(currentFolderId, flatFolders) : [];
+  const folderMoveOptions = flatFolders.filter(
+    (folder) => folder.id !== currentFolderId && !currentFolderDescendantIds.includes(folder.id)
+  );
+  const allVisibleSelected = filteredFiles.length > 0 && filteredFiles.every((file) => selectedFileIds.includes(file.id));
 
   if (status === 'loading' || loading) {
     return (
@@ -221,7 +365,7 @@ export default function DashboardPage() {
               folders={folders}
               files={files}
               currentFolderId={currentFolderId}
-              onFolderSelect={setCurrentFolderId}
+              onFolderSelect={updateFolderSelection}
               onDeleteFolder={handleDeleteFolder}
             />
           </div>
@@ -259,6 +403,71 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {currentFolderId && (
+              <div className="bg-white rounded-xl border p-4 mb-4 flex flex-col lg:flex-row lg:items-center gap-3">
+                <div className="text-sm font-medium text-gray-700 min-w-0">移动当前文件夹</div>
+                <select
+                  value={folderMoveTarget}
+                  onChange={(e) => setFolderMoveTarget(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                >
+                  <option value="ROOT">根目录</option>
+                  {folderMoveOptions.map((folder) => (
+                    <option key={folder.id} value={folder.id}>
+                      {folder.path}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleMoveFolder}
+                  className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 text-sm font-medium"
+                >
+                  移动文件夹
+                </button>
+              </div>
+            )}
+
+            {filteredFiles.length > 0 && (
+              <div className="bg-white rounded-xl border p-4 mb-4 flex flex-col lg:flex-row lg:items-center gap-3">
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={handleToggleSelectAll}
+                    className="rounded border-gray-300"
+                  />
+                  全选当前列表
+                </label>
+                <span className="text-sm text-gray-500">已选 {selectedFileIds.length} 个文件</span>
+                <select
+                  value={fileMoveTarget}
+                  onChange={(e) => setFileMoveTarget(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm lg:ml-auto"
+                >
+                  <option value="ROOT">移动到根目录</option>
+                  {flatFolders.map((folder) => (
+                    <option key={folder.id} value={folder.id}>
+                      {folder.path}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleBatchMoveFiles}
+                  disabled={selectedFileIds.length === 0}
+                  className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 text-sm font-medium disabled:opacity-50"
+                >
+                  批量移动
+                </button>
+                <button
+                  onClick={handleBatchDeleteFiles}
+                  disabled={selectedFileIds.length === 0}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium disabled:opacity-50"
+                >
+                  批量删除
+                </button>
+              </div>
+            )}
+
             {/* File grid */}
             {filteredFiles.length === 0 ? (
               <div className="text-center py-20">
@@ -277,9 +486,20 @@ export default function DashboardPage() {
                     key={file.id}
                     className="bg-white rounded-xl border hover:shadow-md transition-shadow group"
                   >
+                    <div className="px-4 pt-4">
+                      <label className="inline-flex items-center gap-2 text-xs text-gray-500">
+                        <input
+                          type="checkbox"
+                          checked={selectedFileIds.includes(file.id)}
+                          onChange={() => handleToggleFileSelection(file.id)}
+                          className="rounded border-gray-300"
+                        />
+                        选择
+                      </label>
+                    </div>
                     <div
-                      className="p-4 cursor-pointer"
-                      onClick={() => router.push(`/files/${file.id}`)}
+                      className="p-4 pt-2 cursor-pointer"
+                      onClick={() => openFile(file.id)}
                     >
                       <div className="text-3xl mb-3">📄</div>
                       <h3 className="font-medium text-gray-900 truncate" title={file.name}>
@@ -291,13 +511,13 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex border-t">
                       <button
-                        onClick={() => router.push(`/files/${file.id}`)}
+                        onClick={() => openFile(file.id)}
                         className="flex-1 py-2 text-xs text-blue-600 hover:bg-blue-50 rounded-bl-xl"
                       >
                         查看
                       </button>
                       <button
-                        onClick={() => router.push(`/files/${file.id}?mode=edit`)}
+                        onClick={() => openFile(file.id, 'edit')}
                         className="flex-1 py-2 text-xs text-green-600 hover:bg-green-50 border-l"
                       >
                         编辑
@@ -336,7 +556,7 @@ export default function DashboardPage() {
         <NewFileModal
           folderId={currentFolderId}
           onClose={() => setShowNewFile(false)}
-          onSuccess={(id) => router.push(`/files/${id}?mode=edit`)}
+          onSuccess={(id) => openFile(id, 'edit')}
         />
       )}
     </div>
