@@ -70,10 +70,10 @@ export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialFolderId = searchParams.get('folderId');
+  const initialFolderId = searchParams?.get('folderId') || null;
   const [folders, setFolders] = useState<FolderNode[]>([]);
   const [files, setFiles] = useState<FileItem[]>([]);
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(initialFolderId || null);
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(initialFolderId);
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
   const [showNewFolder, setShowNewFolder] = useState(false);
@@ -91,7 +91,7 @@ export default function DashboardPage() {
   }, [status, router]);
 
   useEffect(() => {
-    const folderId = searchParams.get('folderId');
+    const folderId = searchParams?.get('folderId') || null;
     setCurrentFolderId(folderId || null);
   }, [searchParams]);
 
@@ -134,7 +134,7 @@ export default function DashboardPage() {
 
   const updateFolderSelection = useCallback((folderId: string | null) => {
     setCurrentFolderId(folderId);
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() || '');
     if (folderId) {
       params.set('folderId', folderId);
     } else {
