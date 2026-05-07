@@ -164,6 +164,20 @@ export default function DashboardPage() {
               👤 {session.user?.name}
             </span>
             <button
+              onClick={() => router.push('/account')}
+              className="px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+            >
+              修改密码
+            </button>
+            {session.user?.role === 'ADMIN' && (
+              <button
+                onClick={() => router.push('/admin/users')}
+                className="px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg"
+              >
+                用户管理
+              </button>
+            )}
+            <button
               onClick={() => signOut({ callbackUrl: '/login' })}
               className="px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
             >

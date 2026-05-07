@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -23,20 +22,6 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      if (mode === 'register') {
-        const res = await fetch('/api/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          setError(data.error || '注册失败');
-          return;
-        }
-        // Auto-login after register
-      }
-
       const result = await signIn('credentials', {
         username,
         password,
@@ -62,27 +47,8 @@ export default function LoginPage() {
           <p className="text-gray-500 mt-2">Markdown 共享平台</p>
         </div>
 
-        <div className="flex rounded-lg bg-gray-100 p-1 mb-6">
-          <button
-            onClick={() => { setMode('login'); setError(''); }}
-            className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${
-              mode === 'login'
-                ? 'bg-white shadow text-gray-900'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            登录
-          </button>
-          <button
-            onClick={() => { setMode('register'); setError(''); }}
-            className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${
-              mode === 'register'
-                ? 'bg-white shadow text-gray-900'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            注册
-          </button>
+        <div className="rounded-lg bg-gray-100 p-2 mb-6 text-center text-sm font-medium text-gray-700">
+          账号登录
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -125,15 +91,13 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? '处理中...' : mode === 'login' ? '登录' : '注册'}
+            {loading ? '处理中...' : '登录'}
           </button>
         </form>
 
-        {mode === 'login' && (
-          <p className="text-center text-sm text-gray-500 mt-4">
-            默认管理员账号: <span className="font-mono font-medium">admin / admin123</span>
-          </p>
-        )}
+        <p className="text-center text-sm text-gray-500 mt-4">
+          默认管理员账号: <span className="font-mono font-medium">admin / admin123</span>
+        </p>
       </div>
     </div>
   );

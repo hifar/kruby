@@ -9,10 +9,16 @@ export async function POST() {
     if (count === 0) {
       const password = await bcrypt.hash('admin123', 10);
       await prisma.user.create({
-        data: { username: 'admin', password },
+        data: { username: 'admin', password, role: 'ADMIN' },
       });
       return NextResponse.json({ message: 'Default admin created' });
     }
+
+    await prisma.user.updateMany({
+      where: { username: 'admin', role: 'USER' },
+      data: { role: 'ADMIN' },
+    });
+
     return NextResponse.json({ message: 'Users already exist' });
   } catch {
     return NextResponse.json({ error: 'Init failed' }, { status: 500 });

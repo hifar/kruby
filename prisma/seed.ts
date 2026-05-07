@@ -6,7 +6,7 @@ async function seed() {
   if (count === 0) {
     const password = await bcrypt.hash('admin123', 10);
     await prisma.user.create({
-      data: { username: 'admin', password },
+      data: { username: 'admin', password, role: 'ADMIN' },
     });
     console.log('Created default admin user (admin/admin123)');
   }

@@ -25,7 +25,8 @@ export const authOptions: NextAuthOptions = {
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) return null;
 
-        return { id: user.id, name: user.username };
+        const role = (user as { role?: 'USER' | 'ADMIN' }).role;
+        return { id: user.id, name: user.username, role: role || 'USER' };
       },
     }),
   ],
@@ -40,13 +41,26 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.name = user.name;
+        token.role = user.role;
       }
+
+      // Backfill role for legacy tokens created before role was added.
+      if (!token.role && token.id) {
+        const dbUser = (await prisma.user.findUnique({
+          where: { id: token.id as string },
+        })) as { role?: 'USER' | 'ADMIN' } | null;
+        if (dbUser?.role) {
+          token.role = dbUser.role;
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
         session.user.name = token.name;
+        session.user.role = (token.role as 'USER' | 'ADMIN') || 'USER';
       }
       return session;
     },
